@@ -19,7 +19,7 @@
   --ease:    cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-html { scroll-behavior: smooth; font-size: 16px; }
+html { font-size: 16px; }
 
 body {
   background: var(--ink);

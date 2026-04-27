@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
-import { ShoppingBag, Menu, X, Plus, Minus, Wrench, Gem, MoveHorizontal, Layers, MapPin, Phone, Mail, ChevronDown } from 'lucide-react'
-import WatchScene from './WatchScene'
+import { ShoppingBag, Menu, X, Plus, Minus, Wrench, Gem, MoveHorizontal, Layers, MapPin, Phone, Mail } from 'lucide-react'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
+import Hero from './Hero'
 import { products, lookbookPhotos } from './data/products'
 import './App.css'
+
+gsap.registerPlugin(ScrollTrigger)
 
 // ─── CONSTANTES ──────────────────────────────────────────────────────────────
 const EASE = [0.22, 1, 0.36, 1]
@@ -33,22 +38,6 @@ const MODS = [
   { icon: <Wrench size={20} />, name: 'Upgrade Movimiento', desc: 'Mejora la precisión y reserva de marcha con movimientos seleccionados.', price: 'Desde 80€' },
   { icon: <Layers size={20} />, name: 'Cristal Zafiro', desc: 'El mejor material para la esfera. Con tratamiento AR doble cara.', price: 'Desde 55€' },
   { icon: <MoveHorizontal size={20} />, name: 'Mod Completo', desc: 'Renovación integral: esfera, cristal, agujas, corona y brazalete a tu gusto.', price: 'Desde 250€' },
-]
-
-const CONFIG_DIALS = [
-  { color: '#0a0a12', label: 'Negro profundo' },
-  { color: '#0d2040', label: 'Azul noche' },
-  { color: '#1a2a0a', label: 'Verde militar' },
-  { color: '#3a1a0a', label: 'Marrón tabaco' },
-  { color: '#2a0a0a', label: 'Rojo vino' },
-  { color: '#f0f0e8', label: 'Blanco crema' },
-]
-
-const CONFIG_CASES = [
-  { label: 'Acero cepillado', price: 0 },
-  { label: 'Acero pulido', price: 15 },
-  { label: 'PVD negro', price: 25 },
-  { label: 'PVD bronce', price: 30 },
 ]
 
 // ─── BLUR TEXT ────────────────────────────────────────────────────────────────
@@ -176,68 +165,6 @@ function Nav({ cartCount, onCartOpen }) {
         <a href="#contacto" onClick={() => setMenuOpen(false)}>Contacto</a>
       </div>
     </>
-  )
-}
-
-// ─── HERO ─────────────────────────────────────────────────────────────────────
-function Hero({ onAddToCart }) {
-  const heroRef = useRef(null)
-  const scrollProgress = useRef(0)
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (!heroRef.current) return
-      const { top, height } = heroRef.current.getBoundingClientRect()
-      const total = height - window.innerHeight
-      scrollProgress.current = Math.max(0, Math.min(1, -top / total))
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  const heroProduct = products.find(p => p.id === 'gmt-bruiser') || products[0]
-
-  return (
-    <section className="hero" ref={heroRef}>
-      <div className="hero-sticky">
-        <div className="hero-canvas">
-          <WatchScene scrollProgress={scrollProgress} />
-        </div>
-
-        <div className="hero-content">
-          <FadeUp delay={0.1}>
-            <div className="hero-badge liquid-glass">Pieza del mes · Edición limitada</div>
-          </FadeUp>
-
-          <h1 className="hero-title">
-            <BlurText text={heroProduct.name} />
-          </h1>
-
-          <FadeUp delay={0.4}>
-            <p className="hero-specs">
-              {heroProduct.movement} · {heroProduct.specs}
-            </p>
-          </FadeUp>
-
-          <FadeUp delay={0.55}>
-            <div className="hero-ctas">
-              <button
-                className="btn btn-gold"
-                onClick={() => onAddToCart(heroProduct, 0)}
-              >
-                Comprar · {heroProduct.variants[0].price}€
-              </button>
-              <a href="#catalogo" className="btn btn-glass">Ver Catálogo</a>
-            </div>
-          </FadeUp>
-        </div>
-
-        <div className="hero-scroll-hint">
-          <div className="scroll-line" />
-          <span>Scroll</span>
-        </div>
-      </div>
-    </section>
   )
 }
 
@@ -478,20 +405,15 @@ function FeaturedProduct({ onAddToCart }) {
 
 // ─── MODS SECTION ────────────────────────────────────────────────────────────
 function ModsSection() {
-  const [dial, setDial] = useState(0)
-  const [caseFinish, setCaseFinish] = useState(0)
-  const [movement, setMovement] = useState('NH35A')
-  const [crystal, setCrystal] = useState('Zafiro AR')
-
-  const basePrice = 149
-  const total = basePrice + CONFIG_CASES[caseFinish].price + (movement === 'NH38' ? 20 : 0) + (crystal === 'Doble AR' ? 15 : 0)
-
   return (
     <section id="mods">
       <div className="mods-section">
         <FadeUp><div className="section-badge">Personalización</div></FadeUp>
         <FadeUp delay={0.1}>
           <h2 className="sec-title">Mods &amp;<br /><em>servicios</em></h2>
+        </FadeUp>
+        <FadeUp delay={0.15}>
+          <p className="sec-sub">Transformamos tu reloj o el nuestro. Cada mod se presupuesta individualmente tras revisión técnica.</p>
         </FadeUp>
 
         <div className="mods-grid">
@@ -507,86 +429,10 @@ function ModsSection() {
           ))}
         </div>
 
-        <FadeUp delay={0.2}>
-          <div className="configurator liquid-glass">
-            <div>
-              <div className="config-title">Configurador</div>
-
-              <div className="config-group">
-                <label className="config-label">Color de esfera</label>
-                <div className="swatches">
-                  {CONFIG_DIALS.map((d, i) => (
-                    <button
-                      key={i}
-                      className={`swatch${dial === i ? ' active' : ''}`}
-                      style={{ background: d.color }}
-                      title={d.label}
-                      onClick={() => setDial(i)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="config-group">
-                <label className="config-label">Acabado de caja</label>
-                <select className="config-select" value={caseFinish} onChange={e => setCaseFinish(+e.target.value)}>
-                  {CONFIG_CASES.map((c, i) => (
-                    <option key={i} value={i}>{c.label}{c.price > 0 ? ` +${c.price}€` : ''}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="config-group">
-                <label className="config-label">Movimiento</label>
-                <select className="config-select" value={movement} onChange={e => setMovement(e.target.value)}>
-                  <option value="NH35A">NH35A — Automático</option>
-                  <option value="NH38">NH38 — Sin fecha +20€</option>
-                </select>
-              </div>
-
-              <div className="config-group">
-                <label className="config-label">Cristal</label>
-                <select className="config-select" value={crystal} onChange={e => setCrystal(e.target.value)}>
-                  <option value="Zafiro AR">Zafiro AR</option>
-                  <option value="Doble AR">Zafiro Doble AR +15€</option>
-                </select>
-              </div>
-
-              <div className="config-total">
-                <span>Estimado: </span>{total}€
-              </div>
-              <a href="#contacto" className="btn btn-gold" style={{ display: 'inline-flex' }}>
-                Solicitar este Mod
-              </a>
-              <p style={{ fontSize: '0.68rem', color: 'rgba(248,244,234,0.3)', marginTop: '0.7rem', letterSpacing: '0.06em' }}>
-                Precio se confirma tras revisión
-              </p>
-            </div>
-
-            <div className="config-preview" style={{ background: `radial-gradient(ellipse at 50% 40%, ${CONFIG_DIALS[dial].color}99 0%, hsl(15 8% 11%) 70%)` }}>
-              <svg width="160" height="160" viewBox="0 0 160 160" fill="none">
-                <circle cx="80" cy="80" r="70" stroke="rgba(196,150,74,0.4)" strokeWidth="3" />
-                <circle cx="80" cy="80" r="56" fill={CONFIG_DIALS[dial].color} stroke="rgba(196,150,74,0.2)" strokeWidth="1" />
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const a = (i / 12) * Math.PI * 2 - Math.PI / 2
-                  const r1 = 50, r2 = i % 3 === 0 ? 42 : 46
-                  return (
-                    <line key={i}
-                      x1={80 + Math.cos(a) * r1} y1={80 + Math.sin(a) * r1}
-                      x2={80 + Math.cos(a) * r2} y2={80 + Math.sin(a) * r2}
-                      stroke="rgba(196,150,74,0.7)" strokeWidth={i % 3 === 0 ? 2 : 1.2}
-                    />
-                  )
-                })}
-                <line x1="80" y1="80" x2="80" y2="44" stroke="rgba(248,244,234,0.85)" strokeWidth="2" strokeLinecap="round" />
-                <line x1="80" y1="80" x2="106" y2="80" stroke="rgba(248,244,234,0.7)" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="80" cy="80" r="4" fill="rgba(196,150,74,0.9)" />
-                <text x="80" y="65" textAnchor="middle" fill="rgba(196,150,74,0.6)" fontSize="6" fontFamily="serif" letterSpacing="2">MODWATCH</text>
-              </svg>
-              <div style={{ position: 'absolute', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', fontSize: '0.62rem', color: 'rgba(248,244,234,0.25)', letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                Preview en tiempo real
-              </div>
-            </div>
+        <FadeUp delay={0.35}>
+          <div className="mods-cta-row">
+            <a href="#contacto" className="btn btn-gold">Solicitar un Mod</a>
+            <span className="mods-cta-note">Se confirma precio tras revisión técnica · Sin compromiso</span>
           </div>
         </FadeUp>
       </div>
@@ -989,6 +835,15 @@ export default function App() {
   const [cartOpen, setCartOpen] = useState(false)
   const [toast, setToast] = useState({ msg: '', visible: false })
   const toastTimer = useRef(null)
+
+  useEffect(() => {
+    const lenis = new Lenis({ lerp: 0.07, smoothWheel: true })
+    lenis.on('scroll', ScrollTrigger.update)
+    const rafCb = (time) => lenis.raf(time * 1000)
+    gsap.ticker.add(rafCb)
+    gsap.ticker.lagSmoothing(0)
+    return () => { lenis.destroy(); gsap.ticker.remove(rafCb) }
+  }, [])
 
   const showToast = useCallback(msg => {
     setToast({ msg, visible: true })
