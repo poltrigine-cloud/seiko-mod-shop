@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
 import { ShoppingBag, Menu, X, Plus, Minus, Wrench, Gem, MoveHorizontal, Layers, MapPin, Phone, Mail } from 'lucide-react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
-import Hero from './Hero'
+import HeroWithTransition from './HeroWithTransition'
 import { products, lookbookPhotos } from './data/products'
+import { useAuth } from './contexts/AuthContext'
 import './App.css'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -124,9 +126,12 @@ function Toast({ message, visible }) {
 }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
-function Nav({ cartCount, onCartOpen }) {
-  const [scrolled, setScrolled] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+function Nav({ cartCount, onCartOpen, onScrollTo }) {
+  const [scrolled,     setScrolled]     = useState(false)
+  const [menuOpen,     setMenuOpen]     = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const { user, isAdmin, signOut } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -134,35 +139,90 @@ function Nav({ cartCount, onCartOpen }) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const go = (anchor) => (e) => { e.preventDefault(); onScrollTo(anchor) }
+  const goCatalog = () => navigate('/tienda')
+
+  const handleSignOut = async () => {
+    await signOut()
+    setUserMenuOpen(false)
+  }
+
+  const displayName = user?.user_metadata?.full_name?.split(' ')[0]
+    || user?.email?.split('@')[0]
+    || 'Usuario'
+
   return (
     <>
       <nav className={`nav liquid-glass-strong${scrolled ? ' scrolled' : ''}`}>
-        <a href="#" className="nav-logo">MODWATCH<sup>®</sup></a>
+        <a href="#" className="nav-logo" onClick={go('top')}>MODWATCH<sup>®</sup></a>
         <ul className="nav-links">
-          <li><a href="#catalogo">Catálogo</a></li>
-          <li><a href="#mods">Mods</a></li>
-          <li><a href="#lookbook">Lookbook</a></li>
-          <li><a href="#reviews">Reseñas</a></li>
-          <li><a href="#contacto">Contacto</a></li>
+          <li><button className="nav-link-btn" onClick={goCatalog}>Catálogo</button></li>
+          <li><a href="#mods"     onClick={go('#mods')}>Mods</a></li>
+          <li><a href="#lookbook" onClick={go('#lookbook')}>Lookbook</a></li>
+          <li><a href="#reviews"  onClick={go('#reviews')}>Reseñas</a></li>
+          <li><a href="#contacto" onClick={go('#contacto')}>Contacto</a></li>
         </ul>
         <div className="nav-right">
           <button className="nav-cart-btn" onClick={onCartOpen} aria-label="Abrir carrito">
             <ShoppingBag size={16} />
             <span className={`cart-badge${cartCount > 0 ? ' visible' : ''}`}>{cartCount}</span>
           </button>
-          <a href="#catalogo" className="nav-cta">Ver Catálogo</a>
+
+          {user ? (
+            <div className="nav-user" style={{ position: 'relative' }}>
+              <button className="nav-cta" onClick={() => setUserMenuOpen(o => !o)}>
+                {displayName}
+              </button>
+              {userMenuOpen && (
+                <div className="nav-dropdown liquid-glass-strong">
+                  {isAdmin && (
+                    <button onClick={() => { navigate('/admin'); setUserMenuOpen(false) }}>
+                      Panel Admin
+                    </button>
+                  )}
+                  <button onClick={() => { navigate('/cuenta'); setUserMenuOpen(false) }}>
+                    Mi cuenta
+                  </button>
+                  <button onClick={handleSignOut}>Cerrar sesión</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button className="nav-cta" onClick={() => navigate('/login')}>Entrar</button>
+          )}
+
           <button className="nav-hamburger" onClick={() => setMenuOpen(true)} aria-label="Menú">
             <Menu size={22} />
           </button>
         </div>
       </nav>
+
       <div className={`mobile-menu${menuOpen ? ' open' : ''}`}>
         <button className="mobile-close" onClick={() => setMenuOpen(false)}><X size={24} /></button>
-        <a href="#catalogo" onClick={() => setMenuOpen(false)}>Catálogo</a>
-        <a href="#mods" onClick={() => setMenuOpen(false)}>Mods</a>
-        <a href="#lookbook" onClick={() => setMenuOpen(false)}>Lookbook</a>
-        <a href="#reviews" onClick={() => setMenuOpen(false)}>Reseñas</a>
-        <a href="#contacto" onClick={() => setMenuOpen(false)}>Contacto</a>
+        <button className="mobile-nav-btn" onClick={() => { goCatalog(); setMenuOpen(false) }}>Catálogo</button>
+        <a href="#mods"     onClick={e => { go('#mods')(e);     setMenuOpen(false) }}>Mods</a>
+        <a href="#lookbook" onClick={e => { go('#lookbook')(e); setMenuOpen(false) }}>Lookbook</a>
+        <a href="#reviews"  onClick={e => { go('#reviews')(e);  setMenuOpen(false) }}>Reseñas</a>
+        <a href="#contacto" onClick={e => { go('#contacto')(e); setMenuOpen(false) }}>Contacto</a>
+        {user ? (
+          <>
+            {isAdmin && (
+              <button className="mobile-nav-btn" onClick={() => { navigate('/admin'); setMenuOpen(false) }}>
+                Panel Admin
+              </button>
+            )}
+            <button className="mobile-nav-btn" onClick={() => { navigate('/cuenta'); setMenuOpen(false) }}>
+              Mi cuenta
+            </button>
+            <button className="mobile-nav-btn" onClick={() => { handleSignOut(); setMenuOpen(false) }}>
+              Cerrar sesión
+            </button>
+          </>
+        ) : (
+          <button className="mobile-nav-btn" onClick={() => { navigate('/login'); setMenuOpen(false) }}>
+            Entrar
+          </button>
+        )}
       </div>
     </>
   )
@@ -191,6 +251,84 @@ function MarqueeSection() {
         </div>
       </div>
     </div>
+  )
+}
+
+// ─── SHOWCASE SECTION ────────────────────────────────────────────────────────
+const SC_ROT   = [8, 0, -8]
+const SC_SCALE = [0.92, 1.03, 0.92]
+const SC_HSCL  = [0.95, 1.06, 0.95]
+
+function ShowcaseCard({ product, index, onCatalog }) {
+  const [imgError, setImgError] = useState(false)
+  const variant = product.variants[0]
+
+  return (
+    <motion.div
+      className="sc-card"
+      style={{ zIndex: index === 1 ? 2 : 1 }}
+      initial={{ opacity: 0, y: 60, rotateY: SC_ROT[index], scale: SC_SCALE[index] }}
+      whileInView={{ opacity: 1, y: 0, rotateY: SC_ROT[index], scale: SC_SCALE[index] }}
+      whileHover={{ scale: SC_HSCL[index] }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: 0.8, delay: index * 0.12, ease: EASE }}
+      onClick={onCatalog}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onCatalog()}
+    >
+      <div className="sc-img">
+        {imgError ? (
+          <div className="sc-placeholder" />
+        ) : (
+          <img
+            src={variant.photos[0]}
+            alt={product.name}
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        )}
+        {product.badge && (
+          <span className={`product-badge badge-${product.badge}`}>{product.badge}</span>
+        )}
+      </div>
+      <div className="sc-info">
+        <div className="sc-meta">{product.movement} · {product.specs.split('·')[0].trim()}</div>
+        <div className="sc-name">{product.name}</div>
+        <div className="sc-price">{variant.price}€</div>
+      </div>
+    </motion.div>
+  )
+}
+
+function ShowcaseSection({ onCatalog }) {
+  const picks = products.slice(0, 3)
+
+  return (
+    <section className="showcase">
+      <div className="showcase-top">
+        <FadeUp><div className="section-badge">Selección actual</div></FadeUp>
+        <FadeUp delay={0.1}>
+          <h2 className="sec-title">Piezas<br /><em>de autor</em></h2>
+        </FadeUp>
+        <FadeUp delay={0.2}>
+          <p className="sec-sub">Cada reloj, único. Montaje artesanal sobre base Seiko en Sant Cugat del Vallès.</p>
+        </FadeUp>
+      </div>
+
+      <div className="showcase-stage">
+        {picks.map((p, i) => (
+          <ShowcaseCard key={p.id} product={p} index={i} onCatalog={onCatalog} />
+        ))}
+      </div>
+
+      <FadeUp delay={0.4}>
+        <div className="showcase-bottom">
+          <button className="btn btn-gold" onClick={onCatalog}>Ver catálogo completo</button>
+          <span className="showcase-note">{products.length} piezas disponibles · Nuevas entradas cada mes</span>
+        </div>
+      </FadeUp>
+    </section>
   )
 }
 
@@ -286,21 +424,36 @@ const FILTERS = [
   { key: 'icon', label: 'Icon' },
 ]
 
-function Catalog({ onAddToCart }) {
+function Catalog({ onAddToCart, headerless = false }) {
   const [active, setActive] = useState('all')
   const filtered = active === 'all' ? products : products.filter(p => p.category === active)
 
   return (
     <section id="catalogo">
       <div className="catalog">
-        <div className="catalog-header">
-          <div>
-            <FadeUp><div className="section-badge">Colección actual</div></FadeUp>
-            <FadeUp delay={0.1}>
-              <h2 className="sec-title">Catálogo<br /><em>de relojes</em></h2>
+        {!headerless && (
+          <div className="catalog-header">
+            <div>
+              <FadeUp><div className="section-badge">Colección actual</div></FadeUp>
+              <FadeUp delay={0.1}>
+                <h2 className="sec-title">Catálogo<br /><em>de relojes</em></h2>
+              </FadeUp>
+            </div>
+            <FadeUp delay={0.2} className="catalog-filters">
+              {FILTERS.map(f => (
+                <button
+                  key={f.key}
+                  className={`filter-btn${active === f.key ? ' active' : ''}`}
+                  onClick={() => setActive(f.key)}
+                >
+                  {f.label}
+                </button>
+              ))}
             </FadeUp>
           </div>
-          <FadeUp delay={0.2} className="catalog-filters">
+        )}
+        {headerless && (
+          <FadeUp delay={0.2} className="catalog-filters catalog-filters-standalone">
             {FILTERS.map(f => (
               <button
                 key={f.key}
@@ -311,7 +464,7 @@ function Catalog({ onAddToCart }) {
               </button>
             ))}
           </FadeUp>
-        </div>
+        )}
         <div className="products-grid">
           {filtered.map((p, i) => (
             <ProductCard key={p.id} product={p} onAddToCart={onAddToCart} index={i} />
@@ -567,7 +720,7 @@ function TestimonialsSection() {
           </div>
           <FadeUp delay={0.2}>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', color: 'var(--cream)', lineHeight: 1 }}>4.9</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', color: 'var(--gold)', lineHeight: 1 }}>4.9</div>
               <div style={{ color: 'var(--gold)', fontSize: '0.9rem', letterSpacing: '0.1em' }}>★★★★★</div>
               <div style={{ fontSize: '0.72rem', color: 'rgba(248,244,234,0.35)', marginTop: '0.3rem' }}>89 reseñas</div>
             </div>
@@ -713,7 +866,7 @@ function Contact() {
 }
 
 // ─── CTA BANNER ──────────────────────────────────────────────────────────────
-function CtaBanner() {
+function CtaBanner({ onCatalog }) {
   return (
     <div className="cta-banner">
       <FadeUp>
@@ -723,7 +876,7 @@ function CtaBanner() {
       </FadeUp>
       <FadeUp delay={0.3}>
         <div className="cta-ctas">
-          <a href="#catalogo" className="btn btn-gold">Ver Catálogo</a>
+          <button className="btn btn-gold" onClick={onCatalog}>Ver Catálogo</button>
           <a href="#contacto" className="btn btn-glass">Contactar</a>
         </div>
       </FadeUp>
@@ -829,20 +982,50 @@ function CartSidebar({ cart, open, onClose, onRemove }) {
   )
 }
 
-// ─── APP ─────────────────────────────────────────────────────────────────────
+// ─── APP (landing) ────────────────────────────────────────────────────────────
 export default function App() {
-  const [cart, setCart] = useState([])
+  const [cart,     setCart]     = useState([])
   const [cartOpen, setCartOpen] = useState(false)
-  const [toast, setToast] = useState({ msg: '', visible: false })
+  const [toast,    setToast]    = useState({ msg: '', visible: false })
   const toastTimer = useRef(null)
+  const lenisRef   = useRef(null)
+  const navigate   = useNavigate()
 
   useEffect(() => {
     const lenis = new Lenis({ lerp: 0.07, smoothWheel: true })
+    lenisRef.current = lenis
     lenis.on('scroll', ScrollTrigger.update)
-    const rafCb = (time) => lenis.raf(time * 1000)
+    const rafCb = time => lenis.raf(time * 1000)
     gsap.ticker.add(rafCb)
     gsap.ticker.lagSmoothing(0)
-    return () => { lenis.destroy(); gsap.ticker.remove(rafCb) }
+    return () => { lenis.destroy(); lenisRef.current = null; gsap.ticker.remove(rafCb) }
+  }, [])
+
+  const scrollToTop = useCallback(() => {
+    if (lenisRef.current) lenisRef.current.scrollTo(0, { immediate: true })
+    else window.scrollTo(0, 0)
+  }, [])
+
+  const goToCatalog = useCallback(() => navigate('/tienda'), [navigate])
+
+  const scrollToSection = useCallback(anchor => {
+    if (anchor === 'top') { scrollToTop(); return }
+    const el = document.querySelector(anchor)
+    if (el && lenisRef.current) lenisRef.current.scrollTo(el, { duration: 1, offset: -80 })
+  }, [scrollToTop])
+
+  useEffect(() => {
+    const handle = () => {
+      const el = document.querySelector('.showcase')
+      if (el && lenisRef.current) {
+        lenisRef.current.scrollTo(el, {
+          duration: 3.4,
+          easing: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
+        })
+      }
+    }
+    window.addEventListener('modwatch:enter-store', handle)
+    return () => window.removeEventListener('modwatch:enter-store', handle)
   }, [])
 
   const showToast = useCallback(msg => {
@@ -876,12 +1059,13 @@ export default function App() {
     <>
       <Cursor />
       <Toast message={toast.msg} visible={toast.visible} />
-      <Nav cartCount={cartCount} onCartOpen={() => setCartOpen(true)} />
+      <Nav cartCount={cartCount} onCartOpen={() => setCartOpen(true)} onScrollTo={scrollToSection} />
       <CartSidebar cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} onRemove={removeFromCart} />
+
       <main>
-        <Hero onAddToCart={addToCart} />
+        <HeroWithTransition />
         <MarqueeSection />
-        <Catalog onAddToCart={addToCart} />
+        <ShowcaseSection onCatalog={goToCatalog} />
         <FeaturedProduct onAddToCart={addToCart} />
         <ModsSection />
         <Lookbook />
@@ -889,7 +1073,7 @@ export default function App() {
         <TestimonialsSection />
         <FAQ />
         <Contact />
-        <CtaBanner />
+        <CtaBanner onCatalog={goToCatalog} />
         <Footer />
       </main>
     </>

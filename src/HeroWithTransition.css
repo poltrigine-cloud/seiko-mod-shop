@@ -1,0 +1,98 @@
+/* ─── HERO WITH TRANSITION ──────────────────────────────────────────────────── */
+
+/* El wrapper define el espacio de scroll de 320vh */
+.htr-wrapper {
+  position: relative;
+  height: 320vh;
+}
+
+/* El escenario sticky — se queda en pantalla mientras el usuario hace scroll */
+.htr-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+/* Aplica scale + opacity al taller 3D */
+.htr-scale {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
+  transform-origin: center center;
+}
+
+/* Asegura que HeroWorkshop ocupa todo el contenedor sticky */
+.htr-scale .hero-workshop {
+  height: 100%;
+}
+
+/* Viñeta radial — transiciona a negro sólido durante el Acto 2 */
+.htr-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Indicador de scroll — visible solo en Acto 1 */
+.htr-scroll-hint {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.htr-scroll-hint span {
+  font-family: var(--font-body);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(248, 244, 234, 0.38);
+}
+
+/* Contenedor del icono — pastilla redondeada */
+.htr-scroll-icon {
+  width: 22px;
+  height: 36px;
+  border: 1.5px solid rgba(248, 244, 234, 0.25);
+  border-radius: 11px;
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+}
+
+/* Línea animada que baja dentro del icono */
+.htr-scroll-line {
+  width: 2px;
+  height: 7px;
+  background: hsl(var(--gold));
+  border-radius: 1px;
+  animation: htr-scroll-bob 1.65s ease-in-out infinite;
+}
+
+@keyframes htr-scroll-bob {
+  0%, 100% { transform: translateY(0);    opacity: 1; }
+  55%       { transform: translateY(9px); opacity: 0.25; }
+}
+
+/* ─── MOBILE ────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .htr-wrapper { height: 240vh; }
+}
+
+/* ─── REDUCED MOTION ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .htr-wrapper { height: 100vh; }
+  .htr-vignette,
+  .htr-logo-flash,
+  .htr-scroll-hint { display: none; }
+}
